@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>{% if is_gst %}GST INVOICE{% else %}INVOICE{% endif %} — {{ inv.invoice_number }}</title>
+<style>
+  @font-face {
+    font-family: "InvoiceSans";
+    src: url("{{ font_regular }}");
+    font-weight: normal;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "InvoiceSans";
+    src: url("{{ font_bold }}");
+    font-weight: bold;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: "InvoiceSans";
+    src: url("{{ font_italic }}");
+    font-weight: normal;
+    font-style: italic;
+  }
+  @font-face {
+    font-family: "InvoiceSans";
+    src: url("{{ font_bold_italic }}");
+    font-weight: bold;
+    font-style: italic;
+  }
+
+  @page {
+    size: 8.5in 11in;
+    margin: 5mm 5mm 5mm 5mm;
+  }
+  body {
+    font-family: "InvoiceSans", Helvetica, Arial, sans-serif;
+    font-size: 7.2pt;
+    color: #000;
+    margin: 0;
+    padding: 0;
+  }
+  .outer-border {
+    border: 1.1px solid #000;
+    width: 100%;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  td, th {
+    font-family: "InvoiceSans", Helvetica, Arial, sans-serif;
+  }
+  .b-bottom { border-bottom: 1px solid #000; }
+  .b-top    { border-top: 1px solid #000; }
+  .b-right  { border-right: 1px solid #000; }
+  .b-left   { border-left: 1px solid #000; }
+  .bold     { font-weight: bold; }
+  .italic   { font-style: italic; }
+  .center   { text-align: center; }
+  .right    { text-align: right; }
+  .left     { text-align: left; }
+  .valign-top    { vertical-align: top; }
+  .valign-middle { vertical-align: middle; }
+  .w33 { width: 33%; }
+  .w34 { width: 34%; }
+  .w50 { width: 50%; }
+
+  .doc-title {
+    font-size: 12.5pt;
+    font-weight: bold;
+    letter-spacing: 0.4px;
+  }
+  .copy-tag {
+    font-size: 6.8pt;
+    font-weight: normal;
+  }
+  .tagline {
+    font-size: 6.8pt;
+    font-style: italic;
+    font-weight: bold;
+    margin-top: 2px;
+  }
+  .party-head,
+  .meta-label {
+    font-size: 6.6pt;
+    color: #111;
+  }
+  .party-cell {
+    padding: 4px 6px;
+    font-size: 7pt;
+    line-height: 1.3;
+  }
+  .biz-name {
+    font-size: 8pt;
+    font-weight: bold;
+  }
+  .buyer-name {
+    font-size: 7.6pt;
+    font-weight: bold;
+  }
+  .meta-cell {
+    padding: 4px 5px;
+    font-size: 7pt;
+    vertical-align: top;
+  }
+  .meta-value {
+    font-size: 7.4pt;
+    font-weight: bold;
+    min-height: 9pt;
+  }
+
+  .items-head th {
+    font-size: 6.8pt;
+    font-weight: normal;
+    padding: 3px 2px;
+  }
+  .items-row td {
+    padding: 2px 3px;
+  }
+
+  .tax-head th {
+    font-size: 6.7pt;
+    font-weight: normal;
+    padding: 2px;
+  }
+
+  .bank-table {
+    font-size: 6.4pt;
+    width: 100%;
+    margin-top: 1px;
+  }
+  .bank-table td {
+    padding: 0.6px 0;
+    vertical-align: top;
+  }
+
+  .draft-watermark {
+    position: fixed;
+    top: 40%;
+    left: 20%;
+    font-size: 60pt;
+    color: rgba(220, 0, 0, 0.10);
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+{% if is_draft %}
+<div class="draft-watermark">DRAFT</div>
+{% endif %}
+
+<div class="outer-border">
+
+  <!-- ============================================================ -->
+  <!-- 1. HEADER: logo, document title, copy tag                     -->
+  <!-- ============================================================ -->
+  <table class="b-bottom">
+    <tr>
+      <td class="w33 valign-top" style="padding: 5px 6px;">
+        {% if logo_path %}
+        <img src="{{ logo_path }}" width="{{ logo_width }}" height="{{ logo_height }}"/>
+        {% else %}
+        <div class="biz-name">{{ biz.business_name|default:"Anifa Traders" }}</div>
+        {% endif %}
+        <div class="tagline">“In the name of Allah”</div>
+      </td>
+      <td class="w34 center valign-middle">
+        <div class="doc-title">{% if is_gst %}GST INVOICE{% else %}INVOICE{% endif %}</div>
+      </td>
+      <td class="w33 right valign-top" style="padding: 5px 6px;">
+        <div class="copy-tag">
+          {% if is_draft %}(DRAFT — NOT VALID){% else %}(ORIGINAL FOR RECIPIENT){% endif %}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- ============================================================ -->
+  <!-- 2. PARTIES (From / Buyer) AND INVOICE + DISPATCH META         -->
+  <!-- ============================================================ -->
+  <table class="b-bottom">
+    <!-- From (left) / invoice and dispatch meta (right) -->
+    <tr>
+      <td class="w50 b-right valign-top">
+        <table>
+          <tr>
+            <td class="party-cell valign-top">
+              <div class="party-head bold">From</div>
+              {% if biz.business_name %}<div class="biz-name">{{ biz.business_name }}</div>{% endif %}
+              {% if biz.address %}<div>{{ biz.address|linebreaksbr }}</div>{% endif %}
+              <div>GSTIN/UIN: <strong>{{ biz.gstin|default:"" }}</strong></div>
+              <div>State Name : {{ biz_state }} , Code : {{ biz_state_code }}</div>
+              {% if biz.phone %}<div>Contact : {{ biz.phone }}</div>{% endif %}
+              {% if biz.email %}<div>E-Mail : {{ biz.email }}</div>{% endif %}
+            </td>
+          </tr>
+        </table>
+      </td>
+
+      <td class="w50 valign-top">
+        <table>
+          <tr>
+            <td class="meta-cell b-bottom b-right" style="width: 50%;">
+              <div class="meta-label">Invoice No.</div>
+              <div class="meta-value">{{ inv.invoice_number }}</div>
+            </td>
+            <td class="meta-cell b-bottom" style="width: 50%;">
+              <div class="meta-label">Dated</div>
+              <div class="meta-value">{{ inv.invoice_date|date:"d-M-y" }}</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="meta-cell b-bottom b-right">
+              <div class="meta-label">Delivery Note</div>
+              <div class="meta-value">{{ dispatch.delivery_note|default:"" }}</div>
+            </td>
+            <td class="meta-cell b-bottom">
+              <div class="meta-label">Mode/Terms of Payment</div>
+              <div class="meta-value">{{ dispatch.payment_terms|default:"" }}</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="meta-cell b-bottom b-right">
+              <div class="meta-label">Reference No. &amp; Date.</div>
+              <div class="meta-value">{{ dispatch.reference_no_date|default:"" }}</div>
+            </td>
+            <td class="meta-cell b-bottom">
+              <div class="meta-label">Other References</div>
+              <div class="meta-value">{{ dispatch.other_references|default:"" }}</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="meta-cell b-bottom b-right">
+              <div class="meta-label">Buyer's Order No.</div>
+              <div class="meta-value">{{ dispatch.buyer_order_no|default:"" }}</div>
+            </td>
+            <td class="meta-cell b-bottom">
+              <div class="meta-label">Dated</div>
+              <div class="meta-value">{% if dispatch.order_date %}{{ dispatch.order_date|date:"d-M-y" }}{% endif %}</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="meta-cell b-bottom b-right">
+              <div class="meta-label">Dispatch Doc No.</div>
+              <div class="meta-value">{{ dispatch.dispatch_doc_no|default:"" }}</div>
+            </td>
+            <td class="meta-cell b-bottom">
+              <div class="meta-label">Delivery Note Date</div>
+              <div class="meta-value">{% if dispatch.delivery_note_date %}{{ dispatch.delivery_note_date|date:"d-M-y" }}{% endif %}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Buyer (left) / transport (right) -->
+    <tr>
+      <td class="w50 b-right b-top valign-top">
+        <table>
+          <tr>
+            <td class="party-cell valign-top">
+              <div class="party-head bold">Buyer (Bill to)</div>
+              <div class="buyer-name">{{ cust.name }}</div>
+              {% if cust.billing_address %}<div>{{ cust.billing_address|linebreaksbr }}</div>{% endif %}
+              <div>GSTIN/UIN : <strong>{{ cust.gstin|default:"" }}</strong></div>
+              <div>State Name : {{ cust.state|default:"" }} , Code : {{ cust_state_code }}</div>
+              {% if cust.phone %}<div>Contact : {{ cust.phone }}</div>{% endif %}
+            </td>
+          </tr>
+        </table>
+      </td>
+
+      <td class="w50 valign-top">
+        <table>
+          <tr>
+            <td class="meta-cell b-bottom b-right" style="width: 50%;">
+              <div class="meta-label">Dispatched through</div>
+              <div class="meta-value">{{ dispatch.dispatched_through|default:"" }}</div>
+            </td>
+            <td class="meta-cell b-bottom" style="width: 50%;">
+              <div class="meta-label">Destination</div>
+              <div class="meta-value">{{ dispatch.destination|default:"" }}</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="meta-cell b-bottom b-right">
+              <div class="meta-label">Bill of Lading/LR-RR No.</div>
+              <div class="meta-value">{{ dispatch.bill_of_lading_no|default:"" }}</div>
+            </td>
+            <td class="meta-cell b-bottom">
+              <div class="meta-label">Motor Vehicle No.</div>
+              <div class="meta-value">{{ dispatch.motor_vehicle_no|default:"" }}</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="meta-cell" colspan="2">
+              <div class="meta-label">Terms of Delivery</div>
+              <div class="meta-value">{{ dispatch.terms_of_delivery|default:"" }}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- ============================================================ -->
+  <!-- 3. ITEMS TABLE                                                -->
+  <!-- ============================================================ -->
+  {% if is_gst %}
+  <table>
+    <thead>
+      <tr class="b-bottom items-head">
+        <th style="width: 4%;"  class="b-right center">SI<br/>No.</th>
+        <th style="width: 33%;" class="b-right center">Description of Goods</th>
+        <th style="width: 10%;" class="b-right center">HSN/SAC</th>
+        <th style="width: 7%;"  class="b-right center">GST<br/>Rate</th>
+        <th style="width: 13%;" class="b-right center">Quantity</th>
+        <th style="width: 10%;" class="b-right center">Rate</th>
+        <th style="width: 6%;"  class="b-right center">per</th>
+        <th style="width: 17%;" class="center">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+      <tr class="items-row">
+        <td class="b-right center valign-top">{{ line.line_no }}</td>
+        <td class="b-right valign-top"><strong>{{ line.description|linebreaksbr }}</strong></td>
+        <td class="b-right center valign-top">{{ line.hsn_sac }}</td>
+        <td class="b-right center valign-top">{% if line.gst_rate_str %}{{ line.gst_rate_str }} %{% endif %}</td>
+        <td class="b-right right valign-top bold">{{ line.quantity_str }} {{ line.unit_name }}</td>
+        <td class="b-right right valign-top">{{ line.rate_formatted }}</td>
+        <td class="b-right center valign-top">{{ line.unit_name }}</td>
+        <td class="right valign-top bold">{{ line.line_total_formatted }}</td>
+      </tr>
+      {% endfor %}
+
+      <!-- Flexible spacer so the grid keeps the template's proportions -->
+      <tr>
+        <td class="b-right" style="height: {{ spacer_height }}px;"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td></td>
+      </tr>
+
+      {% for row in tax_rows %}
+      <tr>
+        <td class="b-right"></td>
+        <td class="b-right right" style="padding: 1px 5px;"><strong class="italic">TN OUTPUT CGST @ {{ row.half_rate }}%</strong></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right center" style="padding: 1px;">{{ row.half_rate }} %</td>
+        <td class="right" style="padding: 1px 3px;">{{ row.cgst_formatted }}</td>
+      </tr>
+      <tr>
+        <td class="b-right"></td>
+        <td class="b-right right" style="padding: 1px 5px;"><strong class="italic">TN OUTPUT SGST @ {{ row.half_rate }}%</strong></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right center" style="padding: 1px;">{{ row.half_rate }} %</td>
+        <td class="right" style="padding: 1px 3px;">{{ row.sgst_formatted }}</td>
+      </tr>
+      {% endfor %}
+
+      {% if inv.round_off %}
+      <tr>
+        <td class="b-right"></td>
+        <td class="b-right right" style="padding: 1px 5px;"><strong class="italic">ROUND OFF</strong></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="right" style="padding: 1px 3px;">{{ inv.round_off_formatted }}</td>
+      </tr>
+      {% endif %}
+
+      <tr class="b-top">
+        <td colspan="2" class="b-right right bold" style="padding: 3px 5px;">Total</td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right right bold" style="padding: 3px 3px;">{{ total_quantity_str }} {{ primary_unit }}</td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="right bold" style="padding: 3px 3px;">₹ {{ inv.grand_total_formatted }}</td>
+      </tr>
+
+      {% if inv.has_payment or inv.has_advance %}
+      {% if inv.show_advance_separate %}
+      <tr class="b-top">
+        <td colspan="7" class="b-right right bold" style="padding: 2px 5px;">Advance Paid</td>
+        <td class="right bold" style="padding: 2px 3px;">₹ {{ inv.advance_amount_formatted }}</td>
+      </tr>
+      {% endif %}
+      <tr class="b-top">
+        <td colspan="7" class="b-right right bold" style="padding: 2px 5px;">
+          {% if inv.show_advance_separate %}
+            Total Paid (Incl. Advance)
+          {% elif inv.has_advance and inv.total_paid == inv.advance_amount %}
+            Advance Paid
+          {% else %}
+            Amount Paid
+          {% endif %}
+        </td>
+        <td class="right bold" style="padding: 2px 3px;">₹ {{ inv.total_paid_formatted }}</td>
+      </tr>
+      <tr class="b-top">
+        <td colspan="7" class="b-right right bold" style="padding: 2px 5px;">Balance Amount</td>
+        <td class="right bold" style="padding: 2px 3px;">₹ {{ inv.balance_amount_formatted }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <!-- NON-GST INVOICE ITEMS TABLE -->
+  <table>
+    <thead>
+      <tr class="b-bottom items-head">
+        <th style="width: 4%;"  class="b-right center">SI<br/>No.</th>
+        <th style="width: 40%;" class="b-right center">Description of Goods</th>
+        <th style="width: 10%;" class="b-right center">HSN/SAC</th>
+        <th style="width: 13%;" class="b-right center">Quantity</th>
+        <th style="width: 10%;" class="b-right center">Rate</th>
+        <th style="width: 6%;"  class="b-right center">per</th>
+        <th style="width: 17%;" class="center">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+      <tr class="items-row">
+        <td class="b-right center valign-top">{{ line.line_no }}</td>
+        <td class="b-right valign-top"><strong>{{ line.description|linebreaksbr }}</strong></td>
+        <td class="b-right center valign-top">{{ line.hsn_sac }}</td>
+        <td class="b-right right valign-top bold">{{ line.quantity_str }} {{ line.unit_name }}</td>
+        <td class="b-right right valign-top">{{ line.rate_formatted }}</td>
+        <td class="b-right center valign-top">{{ line.unit_name }}</td>
+        <td class="right valign-top bold">{{ line.line_total_formatted }}</td>
+      </tr>
+      {% endfor %}
+
+      <tr>
+        <td class="b-right" style="height: {{ spacer_height }}px;"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td></td>
+      </tr>
+
+      {% if inv.round_off %}
+      <tr>
+        <td class="b-right"></td>
+        <td class="b-right right" style="padding: 1px 5px;"><strong class="italic">ROUND OFF</strong></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="right" style="padding: 1px 3px;">{{ inv.round_off_formatted }}</td>
+      </tr>
+      {% endif %}
+
+      <tr class="b-top">
+        <td colspan="2" class="b-right right bold" style="padding: 3px 5px;">Total</td>
+        <td class="b-right"></td>
+        <td class="b-right right bold" style="padding: 3px 3px;">{{ total_quantity_str }} {{ primary_unit }}</td>
+        <td class="b-right"></td>
+        <td class="b-right"></td>
+        <td class="right bold" style="padding: 3px 3px;">₹ {{ inv.grand_total_formatted }}</td>
+      </tr>
+
+      {% if inv.has_payment or inv.has_advance %}
+      {% if inv.show_advance_separate %}
+      <tr class="b-top">
+        <td colspan="6" class="b-right right bold" style="padding: 2px 5px;">Advance Paid</td>
+        <td class="right bold" style="padding: 2px 3px;">₹ {{ inv.advance_amount_formatted }}</td>
+      </tr>
+      {% endif %}
+      <tr class="b-top">
+        <td colspan="6" class="b-right right bold" style="padding: 2px 5px;">
+          {% if inv.show_advance_separate %}
+            Total Paid (Incl. Advance)
+          {% elif inv.has_advance and inv.total_paid == inv.advance_amount %}
+            Advance Paid
+          {% else %}
+            Amount Paid
+          {% endif %}
+        </td>
+        <td class="right bold" style="padding: 2px 3px;">₹ {{ inv.total_paid_formatted }}</td>
+      </tr>
+      <tr class="b-top">
+        <td colspan="6" class="b-right right bold" style="padding: 2px 5px;">Balance Amount</td>
+        <td class="right bold" style="padding: 2px 3px;">₹ {{ inv.balance_amount_formatted }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- 4. AMOUNT CHARGEABLE IN WORDS                                 -->
+  <!-- ============================================================ -->
+  <table class="b-top">
+    <tr>
+      <td style="padding: 3px 6px; width: 82%;" class="valign-top">
+        <div class="meta-label">Amount Chargeable (in words)</div>
+        <strong style="font-size: 7.6pt;">{{ grand_total_words }}</strong>
+      </td>
+      <td style="padding: 3px 6px; width: 18%; text-align: right;" class="valign-top">
+        <strong style="font-size: 7pt;">E. &amp; O.E</strong>
+      </td>
+    </tr>
+  </table>
+
+  <!-- ============================================================ -->
+  <!-- 5. GST TAX BREAKDOWN TABLE (GST only)                         -->
+  <!-- ============================================================ -->
+  {% if is_gst and tax_rows %}
+  <table class="b-top" style="font-size: 6.8pt;">
+    <thead>
+      <tr class="b-bottom tax-head">
+        <th rowspan="2" style="width: 28%;" class="b-right center">Taxable<br/>Value</th>
+        <th colspan="2" style="width: 24%;" class="b-right center">CGST</th>
+        <th colspan="2" style="width: 24%;" class="b-right center">SGST/UTGST</th>
+        <th rowspan="2" style="width: 24%;" class="center">Total<br/>Tax Amount</th>
+      </tr>
+      <tr class="b-bottom tax-head">
+        <th style="width: 10%;" class="b-right center">Rate</th>
+        <th style="width: 14%;" class="b-right center">Amount</th>
+        <th style="width: 10%;" class="b-right center">Rate</th>
+        <th style="width: 14%;" class="b-right center">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in tax_rows %}
+      <tr class="b-bottom">
+        <td class="b-right right" style="padding: 2px 4px;">{{ row.taxable_formatted }}</td>
+        <td class="b-right center" style="padding: 2px;">{{ row.half_rate }}%</td>
+        <td class="b-right right" style="padding: 2px 4px;">{{ row.cgst_formatted }}</td>
+        <td class="b-right center" style="padding: 2px;">{{ row.half_rate }}%</td>
+        <td class="b-right right" style="padding: 2px 4px;">{{ row.sgst_formatted }}</td>
+        <td class="right" style="padding: 2px 4px;">{{ row.total_tax_formatted }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="bold">
+        <td class="b-right right" style="padding: 2px 4px;"><strong>Total:</strong> {{ inv.subtotal_formatted }}</td>
+        <td class="b-right"></td>
+        <td class="b-right right" style="padding: 2px 4px;">{{ inv.total_cgst_formatted }}</td>
+        <td class="b-right"></td>
+        <td class="b-right right" style="padding: 2px 4px;">{{ inv.total_sgst_formatted }}</td>
+        <td class="right" style="padding: 2px 4px;">{{ inv.total_tax_formatted }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="b-top">
+    <tr>
+      <td style="padding: 2px 6px; font-size: 6.9pt;">
+        Tax Amount (in words) : <strong>{{ tax_total_words }}</strong>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <!-- ============================================================ -->
+  <!-- 6. FOOTER: Declaration, bank details, seal and signature      -->
+  <!-- ============================================================ -->
+  <table class="b-top">
+    <tr>
+      <td class="w50 b-right valign-top" style="padding: 4px 6px;">
+        <div style="height: {{ footer_spacer_height }}px;"></div>
+        <div class="bold" style="font-size: 7.2pt;">Declaration</div>
+        <div style="font-size: 6.4pt; line-height: 1.25;">
+          We declare that this invoice shows the actual price of the
+          goods described and that all particulars are true and correct.
+        </div>
+        {% if inv.notes %}
+        <div style="margin-top: 3px; font-size: 6.8pt;">
+          <strong>Notes:</strong> {{ inv.notes }}
+        </div>
+        {% endif %}
+      </td>
+
+      <td class="w50 valign-top" style="padding: 4px 6px;">
+        <div class="center bold" style="font-size: 7.2pt;">Company's Bank Details</div>
+        <table class="bank-table">
+          <tr>
+            <td style="width: 42%;">A/c Holder's Name</td>
+            <td>: {{ biz.bank_holder_name|default:"" }}</td>
+          </tr>
+          <tr>
+            <td>Bank Name</td>
+            <td>: {{ biz.bank_name|default:"" }}</td>
+          </tr>
+          <tr>
+            <td>A/c No.</td>
+            <td>: {{ biz.bank_account_no|default:"" }}</td>
+          </tr>
+          <tr>
+            <td>Branch &amp; IFS Code</td>
+            <td>: {{ biz.bank_ifsc|default:"" }}</td>
+          </tr>
+        </table>
+
+        <div style="text-align: right; margin-top: 8px; font-size: 7.2pt;">
+          <strong>for {{ biz.business_name|default:"ANIFA TRADERS" }}</strong>
+        </div>
+
+        <table style="width: 100%; margin-top: 2px;">
+          <tr>
+            <td style="width: 54%; text-align: right; vertical-align: bottom; padding: 0 2px 0 0;">
+              {% if seal_path %}
+              <img src="{{ seal_path }}" width="88" height="88"/>
+              {% endif %}
+            </td>
+            <td style="width: 46%; text-align: center; vertical-align: bottom; padding: 0;">
+              {% if signature_path %}
+              <img src="{{ signature_path }}" width="92" height="34"/><br/>
+              {% else %}
+              <br/><br/>
+              {% endif %}
+              <strong style="font-size: 7.2pt;">Authorised Signatory</strong>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</div><!-- .outer-border -->
+
+</body>
+</html>

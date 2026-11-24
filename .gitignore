@@ -1,0 +1,14 @@
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+backend/venv/
+backend/.env
+.pytest_cache/
+htmlcov/
+.coverage
+*.log
+backend/staticfiles/
+backend/media/

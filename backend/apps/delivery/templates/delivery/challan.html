@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Delivery Challan {{ challan.id }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+    color: #111;
+    margin: 0;
+    padding: 0;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .header td {
+    vertical-align: top;
+    padding: 2px 4px;
+  }
+  .business-name {
+    font-size: 14pt;
+    font-weight: bold;
+  }
+  .doc-title {
+    font-size: 14pt;
+    font-weight: bold;
+    text-align: center;
+  }
+  .doc-subtitle {
+    font-size: 8pt;
+    text-align: center;
+    color: #555;
+  }
+  .muted {
+    color: #555;
+  }
+  .rule {
+    border-top: 1px solid #333;
+    margin: 8px 0;
+  }
+  .panel-title {
+    font-weight: bold;
+    margin-bottom: 3px;
+  }
+  .panel td {
+    vertical-align: top;
+    padding: 3px 4px;
+  }
+  .meta td {
+    padding: 1px 3px;
+    font-size: 8.5pt;
+  }
+  .meta .label {
+    color: #555;
+    width: 34%;
+  }
+  .items th {
+    background: #eeeeee;
+    border: 1px solid #333;
+    padding: 4px;
+    text-align: left;
+    font-size: 8.5pt;
+  }
+  .items td {
+    border: 1px solid #333;
+    padding: 4px;
+    font-size: 8.5pt;
+  }
+  .right {
+    text-align: right;
+  }
+  .signature td {
+    padding-top: 42px;
+    font-size: 8.5pt;
+    vertical-align: bottom;
+  }
+  .signature-line {
+    border-top: 1px solid #333;
+    padding-top: 3px;
+  }
+  .footer {
+    margin-top: 10px;
+    font-size: 7.5pt;
+    color: #555;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<table class="header">
+  <tr>
+    <td width="55%">
+      <div class="business-name">{{ biz.business_name }}</div>
+      {% if biz.address %}<div>{{ biz.address|linebreaksbr }}</div>{% endif %}
+      {% if biz.phone %}<div>Phone: {{ biz.phone }}</div>{% endif %}
+      {% if biz.email %}<div>Email: {{ biz.email }}</div>{% endif %}
+      {% if biz.gstin %}<div>GSTIN: {{ biz.gstin }}</div>{% endif %}
+    </td>
+    <td width="45%">
+      <div class="doc-title">DELIVERY CHALLAN</div>
+      <div class="doc-subtitle">Challan No. #{{ challan.id }}</div>
+      <table class="meta" style="margin-top: 8px;">
+        <tr>
+          <td class="label">Delivery Date</td>
+          <td>{{ challan.delivery_date|date:"d-m-Y" }}</td>
+        </tr>
+        <tr>
+          <td class="label">Invoice No.</td>
+          <td>{% if invoice.invoice_number %}{{ invoice.invoice_number }}{% else %}#{{ invoice.id }}{% endif %}</td>
+        </tr>
+        <tr>
+          <td class="label">Invoice Date</td>
+          <td>{{ invoice.invoice_date|date:"d-m-Y" }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div class="rule"></div>
+
+<table class="panel">
+  <tr>
+    <td width="50%">
+      <div class="panel-title">Deliver To</div>
+      <div>{{ cust.name }}</div>
+      {% if cust.billing_address %}<div>{{ cust.billing_address|linebreaksbr }}</div>{% endif %}
+      {% if cust.phone %}<div>Phone: {{ cust.phone }}</div>{% endif %}
+      {% if cust.gstin %}<div>GSTIN: {{ cust.gstin }}</div>{% endif %}
+    </td>
+    <td width="50%">
+      <div class="panel-title">Dispatch Details</div>
+      <div>Delivered by: {{ challan.delivered_by }}</div>
+      <div>Received by: {{ challan.received_by }}</div>
+      {% if cust.code %}<div class="muted">Customer code: {{ cust.code }}</div>{% endif %}
+    </td>
+  </tr>
+</table>
+
+<div class="rule"></div>
+
+<table class="items">
+  <thead>
+    <tr>
+      <th width="7%">S.No</th>
+      <th>Description</th>
+      <th width="14%">HSN / SAC</th>
+      <th width="13%" class="right">Quantity</th>
+      <th width="12%">Unit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.line_no }}</td>
+      <td>
+        {{ item.product_name }}
+        {% if item.product_code %}<br/><span class="muted">Code: {{ item.product_code }}</span>{% endif %}
+      </td>
+      <td>{{ item.hsn_sac }}</td>
+      <td class="right">{{ item.quantity }}</td>
+      <td>{{ item.unit_name }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table class="signature" style="margin-top: 34px;">
+  <tr>
+    <td width="50%">
+      <div class="signature-line">Delivered by</div>
+    </td>
+    <td width="50%">
+      <div class="signature-line">Received by</div>
+    </td>
+  </tr>
+</table>
+
+<div class="footer">
+  This is a delivery challan and not a tax invoice. Stock was deducted when
+  the invoice was issued.
+</div>
+
+</body>
+</html>
