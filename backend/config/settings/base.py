@@ -124,23 +124,46 @@ TEMPLATES = [
 # Database — PostgreSQL (Supports both individual DB_* vars and DATABASE_URL)
 # ---------------------------------------------------------------------------
 
+import re
 from urllib.parse import unquote, urlparse
 
 if os.environ.get("DATABASE_URL"):
-    _db_url = urlparse(os.environ["DATABASE_URL"])
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": _db_url.path.lstrip("/"),
-            "USER": unquote(_db_url.username or "postgres"),
-            "PASSWORD": unquote(_db_url.password or ""),
-            "HOST": _db_url.hostname or "localhost",
-            "PORT": str(_db_url.port or 5432),
-            "OPTIONS": {
-                "connect_timeout": 10,
-            },
+    raw_url = os.environ["DATABASE_URL"].strip()
+    # Match standard or pooler postgres URI: postgresql://user:pass@host:port/dbname
+    match = re.match(
+        r"^(?:postgres|postgresql)://(?P<user>[^:]+):(?P<password>.+)@(?P<host>[^:/]+)(?::(?P<port>\d+))?/(?P<dbname>[^?#\s]+)",
+        raw_url,
+    )
+    if match:
+        data = match.groupdict()
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": data["dbname"],
+                "USER": unquote(data["user"]),
+                "PASSWORD": unquote(data["password"]),
+                "HOST": data["host"],
+                "PORT": str(data["port"] or 5432),
+                "OPTIONS": {
+                    "connect_timeout": 15,
+                },
+            }
         }
-    }
+    else:
+        _db_url = urlparse(raw_url)
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": _db_url.path.lstrip("/"),
+                "USER": unquote(_db_url.username or "postgres"),
+                "PASSWORD": unquote(_db_url.password or ""),
+                "HOST": _db_url.hostname or "localhost",
+                "PORT": str(_db_url.port or 5432),
+                "OPTIONS": {
+                    "connect_timeout": 15,
+                },
+            }
+        }
 else:
     DATABASES = {
         "default": {
@@ -151,7 +174,7 @@ else:
             "HOST": os.environ.get("DB_HOST", "localhost"),
             "PORT": os.environ.get("DB_PORT", "5432"),
             "OPTIONS": {
-                "connect_timeout": 10,
+                "connect_timeout": 15,
             },
         }
     }
