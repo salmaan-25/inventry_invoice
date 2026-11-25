@@ -32,7 +32,10 @@ class Command(BaseCommand):
 
         # --- Username ---
         if not username:
-            username = input("Admin username: ").strip()
+            try:
+                username = input("Admin username: ").strip()
+            except (EOFError, OSError):
+                raise CommandError("INITIAL_ADMIN_USERNAME environment variable must be set in non-interactive environments.")
         if not username:
             raise CommandError("Username cannot be empty.")
 
@@ -46,10 +49,13 @@ class Command(BaseCommand):
 
         # --- Password ---
         if not password:
-            password = getpass.getpass("Admin password: ")
-            confirm = getpass.getpass("Confirm password: ")
-            if password != confirm:
-                raise CommandError("Passwords do not match.")
+            try:
+                password = getpass.getpass("Admin password: ")
+                confirm = getpass.getpass("Confirm password: ")
+                if password != confirm:
+                    raise CommandError("Passwords do not match.")
+            except (EOFError, OSError):
+                raise CommandError("INITIAL_ADMIN_PASSWORD environment variable must be set in non-interactive environments.")
 
         if not password:
             raise CommandError("Password cannot be empty.")
@@ -63,11 +69,17 @@ class Command(BaseCommand):
         # --- Full name and phone (optional interactive prompts) ---
         full_name = os.environ.get("INITIAL_ADMIN_FULL_NAME", "").strip()
         if not full_name:
-            full_name = input("Full name (press Enter to use username): ").strip() or username
+            try:
+                full_name = input("Full name (press Enter to use username): ").strip() or username
+            except (EOFError, OSError):
+                full_name = username
 
         phone = os.environ.get("INITIAL_ADMIN_PHONE", "").strip()
         if not phone:
-            phone = input("Phone number (press Enter to skip): ").strip()
+            try:
+                phone = input("Phone number (press Enter to skip): ").strip()
+            except (EOFError, OSError):
+                phone = ""
 
         # --- Create user ---
         user = User.objects.create_user(
