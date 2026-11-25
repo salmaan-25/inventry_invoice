@@ -66,8 +66,10 @@ urlpatterns = [
     path("api/", include("apps.dashboard.urls")),
 ]
 
-# Serve uploaded media (company logo) from the development server. In
-# production the web server or the configured storage backend serves media
-# (decision D17).
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve uploaded media (company logo) in both development and production
+from django.views.static import serve
+from django.urls import re_path
+
+urlpatterns += [
+    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+]
