@@ -26,12 +26,17 @@ from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
+
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return  # CSRF check not enforced on logout
 
 from apps.accounts.models import User, Employee
 from apps.accounts.serializers import (
@@ -112,10 +117,11 @@ class LogoutView(APIView):
     """
     POST /api/auth/logout/
 
-    Ends the session. Requires authentication (any active user).
+    Ends the session. Accessible to any user without CSRF blockage.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
+    authentication_classes = [CsrfExemptSessionAuthentication]
 
     def post(self, request, *args, **kwargs):
         logout_user(request)

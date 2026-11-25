@@ -12,10 +12,17 @@ All other /api/* routes are registered by their app's urls.py.
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+def root_health_view(request):
+    return JsonResponse({"status": "ok", "app": "Billing & Inventory API"})
+
 urlpatterns = [
+    # Root health response for deployment platform ping
+    path("", root_health_view, name="root-health"),
+
     # Django admin (kept for internal/superuser use and for managed models
     # such as Units and ExpenseCategories).
     path("admin/", admin.site.urls),

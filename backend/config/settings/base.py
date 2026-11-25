@@ -83,6 +83,7 @@ AUTH_USER_MODEL = "accounts.User"
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",        # must be first
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",   # serves static files in production
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -195,6 +196,15 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -229,9 +239,22 @@ SESSION_COOKIE_SAMESITE = "Lax"
 
 CSRF_COOKIE_HTTPONLY = False   # the frontend JS must read this cookie
 CSRF_COOKIE_SAMESITE = "Lax"
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+_csrf_env = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+
 CSRF_TRUSTED_ORIGINS = [
     o.strip()
-    for o in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for o in [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://*.netlify.app",
+        "https://*.onrender.com",
+        "https://*.vercel.app",
+        "https://anifatraderserp.netlify.app",
+        "https://inventry-invoice.onrender.com",
+        *([x for x in _csrf_env.split(",") if x.strip()]),
+        *([x for x in _cors_env.split(",") if x.strip()]),
+    ]
     if o.strip()
 ]
 
@@ -241,8 +264,19 @@ CSRF_TRUSTED_ORIGINS = [
 
 CORS_ALLOWED_ORIGINS = [
     o.strip()
-    for o in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for o in [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://anifatraderserp.netlify.app",
+        "https://inventry-invoice.onrender.com",
+        *([x for x in _cors_env.split(",") if x.strip()]),
+    ]
     if o.strip()
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.netlify\.app$",
+    r"^https://.*\.onrender\.com$",
+    r"^https://.*\.vercel\.app$",
 ]
 CORS_ALLOW_CREDENTIALS = True  # required for session cookies
 
