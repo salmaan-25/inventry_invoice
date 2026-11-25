@@ -117,10 +117,10 @@ class LogoutView(APIView):
     """
     POST /api/auth/logout/
 
-    Ends the session. Accessible to any user without CSRF blockage.
+    Ends the session. Requires authentication (any active user).
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [CsrfExemptSessionAuthentication]
 
     def post(self, request, *args, **kwargs):
